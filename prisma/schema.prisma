@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum InvoiceStatus {
+  unpaid
+  paid
+}
+
+enum ReminderChannel {
+  email
+  whatsapp
+  both
+}
+
+enum ReminderLogStatus {
+  sent
+  failed
+}
+
+model Client {
+  id              String           @id @default(uuid())
+  name            String
+  businessName    String?          @map("business_name")
+  email           String?
+  whatsappNumber  String?          @map("whatsapp_number")
+  reminderChannel ReminderChannel  @default(email) @map("reminder_channel")
+  invoices        Invoice[]
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  @@map("clients")
+}
+
+model Invoice {
+  id           String        @id @default(uuid())
+  invoiceNo    String        @unique @map("invoice_no")
+  clientId     String        @map("client_id")
+  client       Client        @relation(fields: [clientId], references: [id])
+  createdDate  DateTime      @map("created_date") @db.Date
+  dueDate      DateTime      @map("due_date") @db.Date
+  notes        String?
+  grandTotal   Decimal       @default(0) @db.Decimal(14, 2) @map("grand_total")
+  status       InvoiceStatus @default(unpaid)
+  shareToken   String        @unique @map("share_token")
+  items        InvoiceItem[]
+  reminderLogs ReminderLog[]
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String  @id @default(uuid())
+  invoiceId   String  @map("invoice_id")
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  qty         Decimal @db.Decimal(10, 2)
+  unitPrice   Decimal @map("unit_price") @db.Decimal(14, 2)
+  lineTotal   Decimal @map("line_total") @db.Decimal(14, 2)
+
+  @@map("invoice_items")
+}
+
+model ReminderLog {
+  id             String            @id @default(uuid())
+  invoiceId      String            @map("invoice_id")
+  invoice        Invoice           @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  sentDate       DateTime          @map("sent_date") @db.Date
+  channel        ReminderChannel
+  messageContent String            @map("message_content")
+  status         ReminderLogStatus
+  createdAt      DateTime          @default(now()) @map("created_at")
+
+  @@unique([invoiceId, sentDate])
+  @@map("reminder_logs")
+}
