@@ -1,19 +1,46 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ReminderLogStatus } from '@prisma/client';
+import {
+  Client,
+  Invoice,
+  ReminderChannel,
+  ReminderLogStatus,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { startOfTodayUtc } from '../common/date.util';
 import { formatDate, formatIDR } from '../common/format.util';
 import { GroqService } from './groq.service';
-import { InvoiceWithClient, MessagingService } from './messaging.service';
+import {
+  InvoiceWithClient,
+  MessagingService,
+  SendResult,
+} from './messaging.service';
 
 const MS_PER_DAY = 86_400_000;
 
+export interface DispatchResult {
+  tone: 'friendly' | 'firm';
+  channel: ReminderChannel;
+  status: ReminderLogStatus;
+  /** Where the message text came from: AI (Groq) or the local template fallback. */
+  source: 'groq' | 'template';
+  message: string;
+  results: SendResult[];
+}
+
 /**
- * Processes a reminder for a single invoice immediately (used when an invoice is
- * created already due today / overdue, so it doesn't have to wait for the daily
- * n8n run). Mirrors the n8n flow: tone -> draft (Groq, template fallback) ->
- * send per channel -> log. Idempotent per day via reminder_logs (invoiceId, sentDate).
+ * Drafts + sends a payment reminder for one invoice (tone-aware, Groq with a
+ * template fallback) and records a reminder_log.
+ *
+ * - `dispatchForInvoice` — automatic path (on invoice create): idempotent, skips
+ *   if already reminded today, returns nothing.
+ * - `remindNow` — on-demand path (POST /invoices/:id/remind): always sends and
+ *   returns the result so the UI can show it.
  */
 @Injectable()
 export class ReminderDispatchService {
@@ -26,7 +53,7 @@ export class ReminderDispatchService {
     private readonly messaging: MessagingService,
   ) {}
 
-  /** Returns true if the invoice qualifies for an immediate reminder. */
+  /** True if a newly-created invoice should be reminded immediately. */
   shouldDispatchOnCreate(invoice: { status: string; dueDate: Date }): boolean {
     const today = startOfTodayUtc();
     return (
@@ -35,25 +62,48 @@ export class ReminderDispatchService {
     );
   }
 
+  /** Automatic, idempotent reminder (used on invoice create). */
   async dispatchForInvoice(invoiceId: string): Promise<void> {
-    const invoice = await this.prisma.invoice.findUnique({
-      where: { id: invoiceId },
-      include: { client: true },
-    });
+    const invoice = await this.load(invoiceId);
     if (!invoice || invoice.status !== 'unpaid') {
       return;
     }
-
     const sentDate = startOfTodayUtc();
-
-    // Idempotency: if a reminder was already logged today, do nothing.
     const existing = await this.prisma.reminderLog.findUnique({
       where: { invoiceId_sentDate: { invoiceId, sentDate } },
     });
     if (existing) {
-      return;
+      return; // already reminded today
     }
+    await this.process(invoice);
+  }
 
+  /** On-demand reminder; always sends and returns the outcome. */
+  async remindNow(invoiceId: string): Promise<DispatchResult> {
+    const invoice = await this.load(invoiceId);
+    if (!invoice) {
+      throw new NotFoundException(`Invoice ${invoiceId} not found`);
+    }
+    if (invoice.status === 'paid') {
+      throw new BadRequestException(
+        'Invoice sudah lunas — tidak perlu reminder',
+      );
+    }
+    return this.process(invoice);
+  }
+
+  private load(invoiceId: string) {
+    return this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      include: { client: true },
+    });
+  }
+
+  /** Core: tone -> draft -> send -> log. Returns the dispatch result. */
+  private async process(
+    invoice: Invoice & { client: Client },
+  ): Promise<DispatchResult> {
+    const sentDate = startOfTodayUtc();
     const dueTime = new Date(invoice.dueDate).getTime();
     const overdue = dueTime < sentDate.getTime();
     const tone: 'friendly' | 'firm' = overdue ? 'firm' : 'friendly';
@@ -71,14 +121,17 @@ export class ReminderDispatchService {
     };
 
     let message: string;
+    let source: 'groq' | 'template';
     try {
       message = await this.groq.draftReminder(draftInput);
+      source = 'groq';
+      this.logger.log(`Message for ${invoice.invoiceNo} drafted by Groq AI`);
     } catch (err) {
-      // No Groq key or call failed — use a simple template so the reminder still goes out.
       this.logger.warn(
         `Groq draft unavailable (${(err as Error).message}); using template`,
       );
       message = this.templateMessage(draftInput);
+      source = 'template';
     }
 
     const base =
@@ -100,9 +153,9 @@ export class ReminderDispatchService {
     const status = anySent ? ReminderLogStatus.sent : ReminderLogStatus.failed;
 
     await this.prisma.reminderLog.upsert({
-      where: { invoiceId_sentDate: { invoiceId, sentDate } },
+      where: { invoiceId_sentDate: { invoiceId: invoice.id, sentDate } },
       create: {
-        invoiceId,
+        invoiceId: invoice.id,
         sentDate,
         channel: invoice.client.reminderChannel,
         messageContent: fullMessage,
@@ -116,10 +169,19 @@ export class ReminderDispatchService {
     });
 
     this.logger.log(
-      `Immediate reminder ${invoice.invoiceNo} (${tone}) -> ${results
+      `Reminder ${invoice.invoiceNo} (tone=${tone}, source=${source}) -> ${results
         .map((r) => `${r.channel}:${r.status}`)
         .join(', ')}`,
     );
+
+    return {
+      tone,
+      channel: invoice.client.reminderChannel,
+      status,
+      source,
+      message: fullMessage,
+      results,
+    };
   }
 
   private templateMessage(input: {

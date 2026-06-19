@@ -57,6 +57,11 @@ export class InvoicesController {
     return this.invoicesService.markAsPaid(id);
   }
 
+  @Post(':id/remind')
+  remind(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.invoicesService.remind(id);
+  }
+
   @Post(':id/send')
   async send(
     @Param('id', new ParseUUIDPipe()) id: string,

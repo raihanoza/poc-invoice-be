@@ -78,6 +78,11 @@ export class InvoicesService {
     return invoice;
   }
 
+  /** On-demand AI payment reminder (POST /invoices/:id/remind). */
+  remind(id: string) {
+    return this.reminderDispatch.remindNow(id);
+  }
+
   async update(
     id: string,
     dto: UpdateInvoiceDto,
