@@ -19,7 +19,7 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    // Log every incoming request (all methods, all routes).
+    // run the logger on every request
     consumer.apply(LoggerMiddleware).forRoutes('*');
   }
 }

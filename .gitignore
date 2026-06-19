@@ -9,8 +9,9 @@ dist/
 .env.*.local
 !.env.example
 
-# Local n8n launcher with real keys (use start-n8n.example.ps1 as template)
+# Local n8n launcher with real keys (use the *.example.* files as templates)
 n8n/start-n8n.ps1
+n8n/start-n8n.sh
 
 # Logs
 *.log

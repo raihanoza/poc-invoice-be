@@ -11,12 +11,10 @@ export class RemindersService {
     private readonly config: ConfigService,
   ) {}
 
-  /**
-   * Invoices that should be reminded: unpaid, due within REMINDER_DAYS_BEFORE_DUE
-   * days (this also covers already-overdue invoices, since their dueDate < today),
-   * and not yet reminded today. All "which invoice / already sent?" logic lives
-   * here in the backend — n8n only orchestrates (Section 6.1).
-   */
+  // invoices worth reminding: unpaid, due within REMINDER_DAYS_BEFORE_DUE days
+  // (overdue ones are caught too, since their dueDate is already < today), and not
+  // reminded yet today. the "which invoice / already sent?" logic lives here in the
+  // backend — n8n just orchestrates.
   findDueForReminder() {
     const today = startOfTodayUtc();
     const days = Number(this.config.get<string>('REMINDER_DAYS_BEFORE_DUE') ?? 3);
@@ -33,11 +31,9 @@ export class RemindersService {
     });
   }
 
-  /**
-   * Record a reminder send result. Upsert on the (invoiceId, sentDate) unique
-   * constraint gives idempotency: a second call for the same invoice on the same
-   * day updates the existing row instead of creating a duplicate.
-   */
+  // record the outcome of a reminder send. the upsert on (invoiceId, sentDate)
+  // keeps it idempotent — a second call for the same invoice on the same day just
+  // updates that row instead of adding a duplicate.
   async logReminder(dto: CreateReminderLogDto) {
     const sentDate = dto.sentDate ? toDateOnly(dto.sentDate) : startOfTodayUtc();
 

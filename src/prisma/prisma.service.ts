@@ -6,10 +6,8 @@ import {
 } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
-/**
- * Single PrismaClient instance for the whole app, injected via Nest DI.
- * Do not instantiate PrismaClient anywhere else (Coding Standards, Section 11).
- */
+// one PrismaClient for the whole app, handed out through Nest DI.
+// don't `new PrismaClient()` anywhere else.
 @Injectable()
 export class PrismaService
   extends PrismaClient
@@ -22,9 +20,9 @@ export class PrismaService
       await this.$connect();
       this.logger.log('Database connected');
     } catch (err) {
-      // Don't crash the whole app on boot if the DB is unreachable — log and keep
-      // serving. Requests that touch the DB will then fail per-request and be
-      // logged by the global error filter, instead of preventing startup entirely.
+      // if the DB is down at boot, don't take the whole app with it. just log it
+      // and stay up — DB-backed requests will fail individually and get logged by
+      // the global error filter.
       this.logger.error(
         `Database connection failed at startup: ${(err as Error).message}`,
       );

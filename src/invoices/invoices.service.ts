@@ -21,7 +21,7 @@ export type InvoiceWithRelations = Prisma.InvoiceGetPayload<{
   include: typeof invoiceInclude;
 }>;
 
-/** Computed line-item rows + the invoice grand total (snapshots). */
+// item rows with their totals already worked out, plus the invoice total
 interface ComputedItems {
   itemsData: Prisma.InvoiceItemCreateWithoutInvoiceInput[];
   grandTotal: Prisma.Decimal;
@@ -33,10 +33,6 @@ export class InvoicesService {
     private readonly prisma: PrismaService,
     private readonly reminderDispatch: ReminderDispatchService,
   ) {}
-
-  // ---------------------------------------------------------------------------
-  // Commands
-  // ---------------------------------------------------------------------------
 
   async create(dto: CreateInvoiceDto): Promise<InvoiceWithRelations> {
     const createdDate = toDateOnly(dto.createdDate);
@@ -68,9 +64,8 @@ export class InvoicesService {
       include: invoiceInclude,
     });
 
-    // If the invoice is already due today (or overdue), process the reminder
-    // immediately instead of waiting for the daily n8n run. Fire-and-forget so
-    // the create response isn't blocked by message drafting/sending.
+    // already due? send the reminder now instead of waiting for the nightly n8n run.
+    // don't await it, otherwise the response hangs while we draft and send the message.
     if (this.reminderDispatch.shouldDispatchOnCreate(invoice)) {
       void this.reminderDispatch.dispatchForInvoice(invoice.id);
     }
@@ -78,7 +73,7 @@ export class InvoicesService {
     return invoice;
   }
 
-  /** On-demand AI payment reminder (POST /invoices/:id/remind). */
+  // manual reminder triggered from POST /invoices/:id/remind
   remind(id: string) {
     return this.reminderDispatch.remindNow(id);
   }
@@ -89,7 +84,7 @@ export class InvoicesService {
   ): Promise<InvoiceWithRelations> {
     const existing = await this.findOne(id);
 
-    // Validate the resulting (created, due) pair using new values where present.
+    // check the date order against whatever values are actually changing
     const createdDate = dto.createdDate
       ? toDateOnly(dto.createdDate)
       : existing.createdDate;
@@ -111,7 +106,7 @@ export class InvoicesService {
     const itemsProvided = dto.items !== undefined;
     const computed = itemsProvided ? this.computeItems(dto.items!) : null;
 
-    // Replace items + recompute grandTotal atomically when items change.
+    // when items change, swap them out and recompute the total in one transaction
     return this.prisma.$transaction(async (tx) => {
       if (itemsProvided) {
         await tx.invoiceItem.deleteMany({ where: { invoiceId: id } });
@@ -143,14 +138,10 @@ export class InvoicesService {
 
   async remove(id: string): Promise<{ id: string }> {
     await this.findOne(id);
-    // items + reminderLogs cascade via onDelete: Cascade in the schema.
+    // items and reminder logs get cleaned up by the cascade in the schema
     await this.prisma.invoice.delete({ where: { id } });
     return { id };
   }
-
-  // ---------------------------------------------------------------------------
-  // Queries
-  // ---------------------------------------------------------------------------
 
   findAll(query: ListInvoicesQueryDto): Promise<InvoiceWithRelations[]> {
     return this.prisma.invoice.findMany({
@@ -182,20 +173,14 @@ export class InvoicesService {
     return invoice;
   }
 
-  // ---------------------------------------------------------------------------
-  // Helpers
-  // ---------------------------------------------------------------------------
-
   private assertDueAfterCreated(createdDate: Date, dueDate: Date): void {
     if (dueDate.getTime() < createdDate.getTime()) {
       throw new BadRequestException('dueDate must be on or after createdDate');
     }
   }
 
-  /**
-   * Returns the Prisma nested write to either connect an existing client or
-   * inline-create a new one. Enforces "exactly one of clientId / client".
-   */
+  // builds the nested prisma write to either connect an existing client or
+  // create a new one inline. caller must pass exactly one of clientId / client.
   private async resolveClient(
     clientId: string | undefined,
     client: CreateInvoiceDto['client'],
@@ -229,7 +214,7 @@ export class InvoicesService {
     }
   }
 
-  /** qty * unitPrice per line (snapshot), summed into grandTotal. */
+  // qty * unitPrice for each line, then add them all up for the total
   private computeItems(items: CreateInvoiceDto['items']): ComputedItems {
     const itemsData = items.map((it) => {
       const qty = new Prisma.Decimal(it.qty);
@@ -250,7 +235,7 @@ export class InvoicesService {
     return { itemsData, grandTotal };
   }
 
-  /** INV-YYYYMM-XXXX where XXXX is the next sequence within that month. */
+  // format is INV-YYYYMM-XXXX, where XXXX just counts up within the month
   private async generateInvoiceNo(forDate: Date): Promise<string> {
     const ym = `${forDate.getUTCFullYear()}${String(
       forDate.getUTCMonth() + 1,

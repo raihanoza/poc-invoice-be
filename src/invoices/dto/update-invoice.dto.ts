@@ -12,11 +12,9 @@ import {
 } from 'class-validator';
 import { InvoiceItemInputDto } from './invoice-item.dto';
 
-/**
- * Update invoice fields and/or replace its line items. When `items` is present
- * it REPLACES the full set (and grandTotal is recomputed). Status is changed
- * via the dedicated mark-as-paid endpoint, not here.
- */
+// update invoice fields and/or swap out the line items. if you pass items, it
+// replaces the whole set and the total gets recomputed. status isn't touched here —
+// that goes through the mark-as-paid endpoint.
 export class UpdateInvoiceDto {
   @IsOptional()
   @IsUUID()

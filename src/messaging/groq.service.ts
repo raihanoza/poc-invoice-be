@@ -19,11 +19,10 @@ export interface DraftReminderInput {
   daysOverdue: number;
 }
 
-/**
- * Drafts a reminder message via Groq (OpenAI-compatible API). Mirrors the n8n
- * "Draft message (Groq)" node so backend-triggered and n8n-triggered reminders
- * read the same. Throws if GROQ_API_KEY is missing — callers fall back to a template.
- */
+// drafts the reminder text through Groq (OpenAI-compatible API). kept in line with
+// the n8n "Draft message (Groq)" node so reminders read the same whether the backend
+// or n8n kicked them off. throws when GROQ_API_KEY is missing, and callers fall back
+// to a template at that point.
 @Injectable()
 export class GroqService {
   constructor(private readonly config: ConfigService) {}

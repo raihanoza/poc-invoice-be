@@ -18,7 +18,7 @@ function escapeHtml(value: string | null | undefined): string {
     .replace(/'/g, '&#39;');
 }
 
-/** Builds a self-contained (inline-CSS) HTML invoice for Puppeteer to render. */
+// one self-contained HTML string (CSS inlined) for Puppeteer to turn into a PDF
 export function buildInvoiceHtml(invoice: InvoiceForPdf): string {
   const { client, items } = invoice;
   const statusLabel = invoice.status === 'paid' ? 'LUNAS' : 'BELUM DIBAYAR';

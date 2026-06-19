@@ -7,11 +7,9 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 
-/**
- * Minimal protection for the /internal/* endpoints (called by n8n): compares the
- * `x-internal-key` header to the INTERNAL_API_KEY env var. NOT production-grade
- * auth — just keeps these endpoints from being trivially hit from the public.
- */
+// bare-minimum gate on the /internal/* endpoints that n8n calls: match the
+// x-internal-key header against INTERNAL_API_KEY. this isn't real auth, it just
+// stops the endpoints from being trivially hit from outside.
 @Injectable()
 export class InternalKeyGuard implements CanActivate {
   constructor(private readonly config: ConfigService) {}

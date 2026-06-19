@@ -2,13 +2,9 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import puppeteer, { Browser } from 'puppeteer';
 import { buildInvoiceHtml, InvoiceForPdf } from './templates/invoice-template';
 
-/**
- * Pure rendering service: invoice data -> PDF buffer. It does NOT touch the DB
- * (the caller passes already-loaded invoice data), so there is no dependency on
- * InvoicesModule and thus no circular import.
- *
- * A single Chromium instance is launched lazily and reused across requests.
- */
+// Just rendering: invoice data in, PDF buffer out. It never touches the DB — the
+// caller hands over already-loaded data — so it doesn't depend on InvoicesModule
+// and we sidestep a circular import. Chromium starts on first use and gets reused.
 @Injectable()
 export class PdfService implements OnModuleDestroy {
   private browserPromise: Promise<Browser> | null = null;

@@ -1,10 +1,8 @@
 import { ReminderChannel } from '@prisma/client';
 import { IsEnum, IsOptional } from 'class-validator';
 
-/**
- * Optional channel override for the manual "Send to client" action. When
- * omitted, the client's own `reminderChannel` preference is used.
- */
+// lets the "Send to client" button override the channel. leave it off and we
+// just use whatever reminderChannel the client is set to.
 export class SendInvoiceDto {
   @IsOptional()
   @IsEnum(ReminderChannel, {

@@ -1,31 +1,26 @@
 {
-  "name": "Invoice Payment Reminder",
-  "active": false,
-  "settings": {
-    "executionOrder": "v1"
-  },
   "nodes": [
     {
       "parameters": {
         "rule": {
           "interval": [
             {
-              "field": "days",
-              "triggerAtHour": 8,
-              "triggerAtMinute": 0
+              "triggerAtHour": 8
             }
           ]
         }
       },
-      "id": "node_schedule",
+      "id": "d245b166-a3f6-4181-b011-c6e4b4b7e76f",
       "name": "Daily 08:00 schedule",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [240, 320]
+      "position": [
+        -1536,
+        192
+      ]
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "={{ $env.API_BASE_URL }}/internal/invoices/due-for-reminder",
         "sendHeaders": true,
         "headerParameters": {
@@ -38,31 +33,40 @@
         },
         "options": {}
       },
-      "id": "node_getdue",
+      "id": "2f4dcbdf-47ef-43d2-98a2-3d732ac24e44",
       "name": "Get due-for-reminder",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [460, 320]
+      "position": [
+        -1328,
+        192
+      ]
     },
     {
       "parameters": {
         "jsCode": "const res=$input.first().json; const list=Array.isArray(res.data)?res.data:(Array.isArray(res)?res:[]); return list.map((inv)=>({ json: inv }));"
       },
-      "id": "node_split",
+      "id": "57637042-c204-42bd-9775-42329ce819db",
       "name": "Split invoices",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 320]
+      "position": [
+        -1104,
+        192
+      ]
     },
     {
       "parameters": {
         "jsCode": "const MS=86400000; const today=new Date(); today.setUTCHours(0,0,0,0); return $input.all().map((item)=>{ const inv=item.json; const due=new Date(inv.dueDate); due.setUTCHours(0,0,0,0); const diff=Math.round((due.getTime()-today.getTime())/MS); const overdue=diff<0; return { json: { ...inv, tone: overdue?'firm':'friendly', daysOverdue: overdue?Math.abs(diff):0, daysUntilDue: overdue?0:diff } }; });"
       },
-      "id": "node_tone",
+      "id": "f4d6b739-2dcf-46c1-bb82-a8c159592494",
       "name": "Compute tone & days",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [900, 320]
+      "position": [
+        -880,
+        192
+      ]
     },
     {
       "parameters": {
@@ -71,8 +75,14 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $env.GROQ_API_KEY }}" },
-            { "name": "content-type", "value": "application/json" }
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.GROQ_API_KEY }}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -80,57 +90,70 @@
         "jsonBody": "={{ JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: 400, temperature: 0.7, messages: [ { role: 'system', content: 'Kamu adalah asisten yang menulis pesan pengingat pembayaran invoice untuk sebuah bisnis kecil.\\n\\nTulis SATU pesan pengingat singkat (maksimal 80 kata) dalam Bahasa Indonesia, dengan ketentuan:\\n- Jika tone = friendly: nada ramah, sopan, tidak menekan, mengingatkan jatuh tempo yang akan datang.\\n- Jika tone = firm: nada lebih tegas dan profesional (bukan kasar), menekankan invoice sudah lewat jatuh tempo dan perlu segera dibayar.\\n- Sebutkan nomor invoice, jumlah tagihan, dan tanggal jatuh tempo.\\n- Jangan gunakan salam pembuka formal yang panjang, langsung ke inti pesan.\\n- Output HANYA teks pesan, tanpa penjelasan tambahan, tanpa markdown.' }, { role: 'user', content: 'Data:\\n- Nama client: ' + $json.client.name + '\\n- Nomor invoice: ' + $json.invoiceNo + '\\n- Jumlah tagihan: Rp ' + $json.grandTotal + '\\n- Tanggal jatuh tempo: ' + $json.dueDate + '\\n- Tone: ' + $json.tone + '\\n- Hari terlambat (jika ada): ' + ($json.daysOverdue || 0) } ] }) }}",
         "options": {}
       },
-      "id": "node_groq",
+      "id": "d58aad97-199f-4bad-8515-0c1fc2483c55",
       "name": "Draft message (Groq)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1120, 320]
+      "position": [
+        -656,
+        192
+      ]
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
         "jsCode": "const inv=$('Compute tone & days').item.json; const ai=$json; const text=(ai&&ai.choices&&ai.choices[0]&&ai.choices[0].message&&ai.choices[0].message.content)?ai.choices[0].message.content:''; const base=$env.WEB_PUBLIC_URL||''; return { json: { invoiceId: inv.id, invoiceNo: inv.invoiceNo, grandTotal: inv.grandTotal, dueDate: inv.dueDate, channel: inv.client.reminderChannel, email: inv.client.email, whatsapp: inv.client.whatsappNumber, clientName: inv.client.name, tone: inv.tone, daysOverdue: inv.daysOverdue, shareToken: inv.shareToken, shareUrl: base + '/invoice/' + inv.shareToken, messageContent: text } };"
       },
-      "id": "node_context",
+      "id": "71051f4c-f040-4b30-9964-ce8086972e26",
       "name": "Build message context",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1340, 320]
+      "position": [
+        -448,
+        192
+      ]
     },
     {
       "parameters": {
         "mode": "expression",
         "numberOutputs": 3,
-        "output": "={{ ({ email: 0, whatsapp: 1, both: 2 })[$json.channel] }}",
-        "options": {}
+        "output": "={{ ({ email: 0, whatsapp: 1, both: 2 })[$json.channel] }}"
       },
-      "id": "node_switch",
+      "id": "75d76032-9088-4287-9262-f50fe542449f",
       "name": "Route by channel",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
-      "position": [1560, 320]
+      "position": [
+        -224,
+        192
+      ]
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://api.resend.com/emails",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $env.RESEND_API_KEY }}" }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ from: $env.EMAIL_FROM, to: [ $('Build message context').item.json.email ], subject: 'Pengingat pembayaran invoice ' + $('Build message context').item.json.invoiceNo, html: '<p>' + $('Build message context').item.json.messageContent + '</p><p>Lihat invoice: ' + $('Build message context').item.json.shareUrl + '</p>' }) }}",
-        "options": {}
+        "fromEmail": "={{ $env.EMAIL_FROM || $env.EMAIL_USER }}",
+        "toEmail": "={{ $('Build message context').item.json.email }}",
+        "subject": "=Pengingat pembayaran invoice {{ $('Build message context').item.json.invoiceNo }}",
+        "emailFormat": "html",
+        "html": "=<div style=\"font-family:Arial,sans-serif;font-size:14px;white-space:pre-line\">{{ $('Build message context').item.json.messageContent }}</div><p style=\"font-family:Arial,sans-serif;font-size:14px\">Lihat invoice: <a href=\"{{ $('Build message context').item.json.shareUrl }}\">{{ $('Build message context').item.json.shareUrl }}</a></p>",
+        "options": {
+          "appendAttribution": false
+        }
       },
-      "id": "node_email",
-      "name": "Send Email (Resend)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1780, 140],
-      "onError": "continueErrorOutput"
+      "id": "254ce7c7-4448-4579-a569-971212772c7a",
+      "name": "Send Email (SMTP)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID",
+          "name": "Gmail SMTP"
+        }
+      }
     },
     {
       "parameters": {
@@ -141,34 +164,42 @@
         "jsonBody": "={{ JSON.stringify({ message: $('Build message context').item.json.messageContent + '\\n\\nLihat invoice: ' + $('Build message context').item.json.shareUrl, numbers: $('Build message context').item.json.whatsapp, apiKey: $env.WHATSAPP_SERVICE_TOKEN }) }}",
         "options": {}
       },
-      "id": "node_wa",
+      "id": "7a3b9857-cb2f-427f-9ced-a980424623b5",
       "name": "Send WhatsApp",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1780, 320],
+      "position": [
+        0,
+        192
+      ],
       "onError": "continueErrorOutput"
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://api.resend.com/emails",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $env.RESEND_API_KEY }}" }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ from: $env.EMAIL_FROM, to: [ $('Build message context').item.json.email ], subject: 'Pengingat pembayaran invoice ' + $('Build message context').item.json.invoiceNo, html: '<p>' + $('Build message context').item.json.messageContent + '</p><p>Lihat invoice: ' + $('Build message context').item.json.shareUrl + '</p>' }) }}",
-        "options": {}
+        "fromEmail": "={{ $env.EMAIL_FROM || $env.EMAIL_USER }}",
+        "toEmail": "={{ $('Build message context').item.json.email }}",
+        "subject": "=Pengingat pembayaran invoice {{ $('Build message context').item.json.invoiceNo }}",
+        "emailFormat": "html",
+        "html": "=<div style=\"font-family:Arial,sans-serif;font-size:14px;white-space:pre-line\">{{ $('Build message context').item.json.messageContent }}</div><p style=\"font-family:Arial,sans-serif;font-size:14px\">Lihat invoice: <a href=\"{{ $('Build message context').item.json.shareUrl }}\">{{ $('Build message context').item.json.shareUrl }}</a></p>",
+        "options": {
+          "appendAttribution": false
+        }
       },
-      "id": "node_email_both",
+      "id": "432d2538-af7b-4459-94f6-00dc14c3e032",
       "name": "Send Email (both)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1780, 500],
-      "onError": "continueErrorOutput"
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        368
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_WITH_SMTP_CREDENTIAL_ID",
+          "name": "Gmail SMTP"
+        }
+      }
     },
     {
       "parameters": {
@@ -179,11 +210,14 @@
         "jsonBody": "={{ JSON.stringify({ message: $('Build message context').item.json.messageContent + '\\n\\nLihat invoice: ' + $('Build message context').item.json.shareUrl, numbers: $('Build message context').item.json.whatsapp, apiKey: $env.WHATSAPP_SERVICE_TOKEN }) }}",
         "options": {}
       },
-      "id": "node_wa_both",
+      "id": "3865ece2-c918-450d-b247-903c84ae22b0",
       "name": "Send WhatsApp (both)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2000, 500],
+      "position": [
+        224,
+        368
+      ],
       "onError": "continueErrorOutput"
     },
     {
@@ -193,7 +227,10 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-internal-key", "value": "={{ $env.INTERNAL_API_KEY }}" }
+            {
+              "name": "x-internal-key",
+              "value": "={{ $env.INTERNAL_API_KEY }}"
+            }
           ]
         },
         "sendBody": true,
@@ -201,11 +238,14 @@
         "jsonBody": "={{ JSON.stringify({ invoiceId: $('Build message context').item.json.invoiceId, channel: $('Build message context').item.json.channel, messageContent: $('Build message context').item.json.messageContent, status: 'sent' }) }}",
         "options": {}
       },
-      "id": "node_log_sent",
+      "id": "b510757d-efba-4afc-8341-98df83908baa",
       "name": "Log reminder (sent)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2240, 280]
+      "position": [
+        464,
+        144
+      ]
     },
     {
       "parameters": {
@@ -214,7 +254,10 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-internal-key", "value": "={{ $env.INTERNAL_API_KEY }}" }
+            {
+              "name": "x-internal-key",
+              "value": "={{ $env.INTERNAL_API_KEY }}"
+            }
           ]
         },
         "sendBody": true,
@@ -222,66 +265,183 @@
         "jsonBody": "={{ JSON.stringify({ invoiceId: $('Build message context').item.json.invoiceId, channel: $('Build message context').item.json.channel, messageContent: $('Build message context').item.json.messageContent, status: 'failed' }) }}",
         "options": {}
       },
-      "id": "node_log_failed",
+      "id": "685b87f3-d5c7-403c-9f58-eb2492a22fa4",
       "name": "Log reminder (failed)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2240, 540]
+      "position": [
+        464,
+        400
+      ]
     }
   ],
   "connections": {
     "Daily 08:00 schedule": {
-      "main": [[{ "node": "Get due-for-reminder", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Get due-for-reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get due-for-reminder": {
-      "main": [[{ "node": "Split invoices", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Split invoices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Split invoices": {
-      "main": [[{ "node": "Compute tone & days", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Compute tone & days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Compute tone & days": {
-      "main": [[{ "node": "Draft message (Groq)", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Draft message (Groq)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Draft message (Groq)": {
-      "main": [[{ "node": "Build message context", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Build message context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Build message context": {
-      "main": [[{ "node": "Route by channel", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Route by channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Route by channel": {
       "main": [
-        [{ "node": "Send Email (Resend)", "type": "main", "index": 0 }],
-        [{ "node": "Send WhatsApp", "type": "main", "index": 0 }],
-        [{ "node": "Send Email (both)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Send Email (SMTP)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Email (both)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Send Email (Resend)": {
+    "Send Email (SMTP)": {
       "main": [
-        [{ "node": "Log reminder (sent)", "type": "main", "index": 0 }],
-        [{ "node": "Log reminder (failed)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Log reminder (sent)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log reminder (failed)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Send WhatsApp": {
       "main": [
-        [{ "node": "Log reminder (sent)", "type": "main", "index": 0 }],
-        [{ "node": "Log reminder (failed)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Log reminder (sent)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log reminder (failed)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Send Email (both)": {
       "main": [
-        [{ "node": "Send WhatsApp (both)", "type": "main", "index": 0 }],
-        [{ "node": "Log reminder (failed)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Send WhatsApp (both)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log reminder (failed)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Send WhatsApp (both)": {
       "main": [
-        [{ "node": "Log reminder (sent)", "type": "main", "index": 0 }],
-        [{ "node": "Log reminder (failed)", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Log reminder (sent)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log reminder (failed)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
+  "pinData": {},
   "meta": {
-    "templateId": "poc-invoice-reminder"
-  },
-  "pinData": {}
+    "instanceId": "79a0de74e0335360e1476eb7af8d76dc2ed444ae081b6f767443837c0bedaf65"
+  }
 }

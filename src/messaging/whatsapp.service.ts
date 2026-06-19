@@ -6,12 +6,10 @@ export interface SendWhatsappParams {
   message: string;
 }
 
-/**
- * WhatsApp sender for the transporindo waapi service. POSTs the following body
- * to WHATSAPP_SERVICE_URL:
- *   { "message": "...", "numbers": "<phone>", "apiKey": "<WHATSAPP_SERVICE_TOKEN>" }
- * Throws when not configured (URL / apiKey missing).
- */
+// sends WhatsApp messages through the transporindo waapi service. POSTs this body
+// to WHATSAPP_SERVICE_URL:
+//   { "message": "...", "numbers": "<phone>", "apiKey": "<WHATSAPP_SERVICE_TOKEN>" }
+// throws if the URL or apiKey isn't set.
 @Injectable()
 export class WhatsappService {
   constructor(private readonly config: ConfigService) {}

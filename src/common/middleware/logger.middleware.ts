@@ -1,12 +1,10 @@
 import { Injectable, Logger, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
 
-/**
- * Access log: prints one line per request once the response is finished, e.g.
- *   [HTTP] GET /invoices 200 12ms - 482b
- * Colour/level follows the status: 2xx/3xx = log, 4xx = warn, 5xx = error.
- * Error details (message/stack) are printed by HttpExceptionFilter.
- */
+// Access log — one line per request once the response wraps up, like:
+//   [HTTP] GET /invoices 200 12ms - 482b
+// Level tracks the status: 2xx/3xx log, 4xx warn, 5xx error. The actual error
+// message/stack is left to HttpExceptionFilter.
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
   private readonly logger = new Logger('HTTP');

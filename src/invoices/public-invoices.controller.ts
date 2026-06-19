@@ -1,10 +1,8 @@
 import { Controller, Get, Param } from '@nestjs/common';
 import { InvoicesService } from './invoices.service';
 
-/**
- * Public, no-auth share endpoint (Section 5.2): GET /public/invoices/:token
- * Looked up by share_token so a client can open the invoice without logging in.
- */
+// public share link, no auth: GET /public/invoices/:token
+// we find the invoice by its share_token so the client can open it without an account
 @Controller('public/invoices')
 export class PublicInvoicesController {
   constructor(private readonly invoicesService: InvoicesService) {}

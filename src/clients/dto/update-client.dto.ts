@@ -9,10 +9,8 @@ import {
   MaxLength,
 } from 'class-validator';
 
-/**
- * All fields optional (written explicitly instead of PartialType to avoid an
- * extra dependency). `name` keeps its non-empty rule when present.
- */
+// everything's optional here. spelled out by hand rather than using PartialType,
+// just to skip the extra dep. name still has to be non-empty if you send it.
 export class UpdateClientDto {
   @IsOptional()
   @IsString()

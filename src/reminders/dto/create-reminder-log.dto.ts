@@ -24,7 +24,7 @@ export class CreateReminderLogDto {
   @IsEnum(ReminderLogStatus, { message: 'status must be one of: sent, failed' })
   status!: ReminderLogStatus;
 
-  /** Defaults to today (UTC) when omitted. Drives the per-day idempotency. */
+  // leave it out and it defaults to today (UTC); this is what keeps us to one per day
   @IsOptional()
   @IsDateString({}, { message: 'sentDate must be a valid date (YYYY-MM-DD)' })
   sentDate?: string;

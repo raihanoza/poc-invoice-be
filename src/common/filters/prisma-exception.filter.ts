@@ -19,14 +19,9 @@ export interface MappedPrismaError {
   errors: string[];
 }
 
-/**
- * Translate a known Prisma error into an HTTP-shaped result.
- * Returns null for codes we don't special-case (let the catch-all 500 it).
- *
- * Exported so the catch-all HttpExceptionFilter can reuse the exact same
- * mapping — this keeps behaviour identical no matter which filter Nest runs
- * first, removing any dependency on global-filter ordering.
- */
+// turn a known Prisma error into something HTTP-shaped. returns null for codes we
+// don't handle specially, letting the catch-all 500 it. exported so the catch-all
+// filter can reuse it and behave the same regardless of which filter Nest hits first.
 export function mapPrismaError(
   exception: Prisma.PrismaClientKnownRequestError,
 ): MappedPrismaError | null {

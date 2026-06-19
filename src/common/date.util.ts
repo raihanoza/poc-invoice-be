@@ -1,16 +1,13 @@
-/**
- * Date helpers working in UTC, to match Prisma's `@db.Date` columns which store
- * a calendar date with no timezone. Keeping everything in UTC avoids off-by-one
- * day shifts when the server runs in a non-UTC timezone.
- */
+// Everything here stays in UTC to line up with Prisma's `@db.Date` columns (a bare
+// calendar date, no timezone). Otherwise a server in another timezone drifts a day.
 
-/** Normalize an ISO date string ("YYYY-MM-DD" or full ISO) to a UTC calendar date. */
+// take an ISO string (date-only or full) and pin it to midnight UTC
 export function toDateOnly(input: string): Date {
-  const datePart = input.slice(0, 10); // YYYY-MM-DD
+  const datePart = input.slice(0, 10);
   return new Date(`${datePart}T00:00:00.000Z`);
 }
 
-/** Today at 00:00:00 UTC. */
+// midnight UTC today
 export function startOfTodayUtc(): Date {
   const now = new Date();
   return new Date(
@@ -18,7 +15,7 @@ export function startOfTodayUtc(): Date {
   );
 }
 
-/** Add (or subtract) whole days to a date, in UTC. */
+// shift a date by N days (negative to go back), in UTC
 export function addDays(date: Date, days: number): Date {
   const result = new Date(date);
   result.setUTCDate(result.getUTCDate() + days);

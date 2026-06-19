@@ -13,13 +13,9 @@ import {
 import { CreateClientDto } from '../../clients/dto/create-client.dto';
 import { InvoiceItemInputDto } from './invoice-item.dto';
 
-/**
- * Create an invoice with its line items in one request.
- *
- * Client selection (Section 5.1): provide EITHER `clientId` (existing client)
- * OR `client` (inline-create a new client) — exactly one. The "exactly one"
- * rule is enforced in the service so we can return a clear message.
- */
+// create an invoice plus its line items in a single request.
+// for the client, send either clientId (existing) or client (create a new one inline),
+// but not both. the service checks that so it can return a readable error.
 export class CreateInvoiceDto {
   @IsOptional()
   @IsUUID()

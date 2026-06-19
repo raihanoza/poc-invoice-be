@@ -13,11 +13,9 @@ export interface SuccessEnvelope<T> {
   data: T;
 }
 
-/**
- * Wraps every successful JSON response as { success: true, data }.
- * Binary/stream responses (StreamableFile, e.g. the PDF endpoint) pass through
- * untouched so the raw stream reaches the client.
- */
+// wraps every successful JSON response as { success: true, data }.
+// streams like StreamableFile (the PDF endpoint) slip through as-is so the raw
+// bytes make it to the client.
 @Injectable()
 export class ResponseInterceptor<T>
   implements NestInterceptor<T, SuccessEnvelope<T> | T>

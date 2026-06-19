@@ -1,9 +1,7 @@
 import { IsNumber, IsPositive, IsString, IsNotEmpty, MaxLength } from 'class-validator';
 
-/**
- * Input shape for a single line item. `lineTotal` is NOT accepted from the
- * client — it is computed server-side as qty * unitPrice (Section 4 notes).
- */
+// one line item as it comes in. note we don't take lineTotal from the client —
+// it's worked out on the server as qty * unitPrice.
 export class InvoiceItemInputDto {
   @IsString()
   @IsNotEmpty()

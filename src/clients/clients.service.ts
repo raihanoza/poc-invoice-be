@@ -29,7 +29,7 @@ export class ClientsService {
   }
 
   async update(id: string, dto: UpdateClientDto): Promise<Client> {
-    // Ensure it exists first so we return a clean 404 instead of a Prisma P2025.
+    // look it up first so a missing id gives a 404 instead of a raw Prisma P2025
     await this.findOne(id);
     return this.prisma.client.update({ where: { id }, data: dto });
   }

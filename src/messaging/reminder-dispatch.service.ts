@@ -27,21 +27,17 @@ export interface DispatchResult {
   tone: 'friendly' | 'firm';
   channel: ReminderChannel;
   status: ReminderLogStatus;
-  /** Where the message text came from: AI (Groq) or the local template fallback. */
+  // did the text come from Groq, or did we fall back to the local template?
   source: 'groq' | 'template';
   message: string;
   results: SendResult[];
 }
 
-/**
- * Drafts + sends a payment reminder for one invoice (tone-aware, Groq with a
- * template fallback) and records a reminder_log.
- *
- * - `dispatchForInvoice` — automatic path (on invoice create): idempotent, skips
- *   if already reminded today, returns nothing.
- * - `remindNow` — on-demand path (POST /invoices/:id/remind): always sends and
- *   returns the result so the UI can show it.
- */
+// Drafts and sends a payment reminder for one invoice (Groq for the wording, with a
+// template fallback) and writes a reminder_log. Two ways in:
+//   - dispatchForInvoice: the automatic path on invoice create. Skips if we already
+//     reminded today and returns nothing.
+//   - remindNow: the manual button. Always sends and returns the result for the UI.
 @Injectable()
 export class ReminderDispatchService {
   private readonly logger = new Logger('ReminderDispatch');
@@ -53,7 +49,7 @@ export class ReminderDispatchService {
     private readonly messaging: MessagingService,
   ) {}
 
-  /** True if a newly-created invoice should be reminded immediately. */
+  // should a freshly created invoice get a reminder right away?
   shouldDispatchOnCreate(invoice: { status: string; dueDate: Date }): boolean {
     const today = startOfTodayUtc();
     return (
@@ -62,23 +58,25 @@ export class ReminderDispatchService {
     );
   }
 
-  /** Automatic, idempotent reminder (used on invoice create). */
-  async dispatchForInvoice(invoiceId: string): Promise<void> {
+  // automatic reminder used on invoice create and by the n8n daily run. safe to call
+  // more than once a day — returns null when there's nothing to send (paid, missing,
+  // or already reminded today), otherwise the dispatch result.
+  async dispatchForInvoice(invoiceId: string): Promise<DispatchResult | null> {
     const invoice = await this.load(invoiceId);
     if (!invoice || invoice.status !== 'unpaid') {
-      return;
+      return null;
     }
     const sentDate = startOfTodayUtc();
     const existing = await this.prisma.reminderLog.findUnique({
       where: { invoiceId_sentDate: { invoiceId, sentDate } },
     });
     if (existing) {
-      return; // already reminded today
+      return null; // already sent one today
     }
-    await this.process(invoice);
+    return this.process(invoice);
   }
 
-  /** On-demand reminder; always sends and returns the outcome. */
+  // manual reminder — always sends and hands back the outcome
   async remindNow(invoiceId: string): Promise<DispatchResult> {
     const invoice = await this.load(invoiceId);
     if (!invoice) {
@@ -99,7 +97,7 @@ export class ReminderDispatchService {
     });
   }
 
-  /** Core: tone -> draft -> send -> log. Returns the dispatch result. */
+  // the actual work: pick a tone, draft the text, send it, log it
   private async process(
     invoice: Invoice & { client: Client },
   ): Promise<DispatchResult> {

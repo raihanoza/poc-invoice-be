@@ -16,18 +16,11 @@ interface FailureEnvelope {
   errors: string[];
 }
 
-/**
- * Converts any thrown exception into the consistent failure envelope:
- *   { success: false, message, errors }
- *
- * - HttpException (incl. validation errors from ValidationPipe) is unwrapped so
- *   class-validator messages land in `errors[]`.
- * - Prisma known errors are mapped (same logic as the dedicated Prisma filter).
- * - Anything else becomes a 500 with a generic message.
- *
- * Every handled error is also printed to the terminal with the request context
- * (warn for 4xx, error + stack for 5xx).
- */
+// Turns whatever gets thrown into one shape: { success: false, message, errors }.
+// HttpExceptions (including ValidationPipe errors) get unwrapped so class-validator
+// messages end up in errors[]. Known Prisma errors go through the same mapping the
+// Prisma filter uses. Everything else is a generic 500. Each one is logged with the
+// request too — warn for 4xx, error + stack for 5xx.
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger('HTTP');
@@ -43,8 +36,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let stack: string | undefined;
 
     if (exception instanceof Prisma.PrismaClientKnownRequestError) {
-      // Reuse the exact mapping from the dedicated Prisma filter so behaviour is
-      // identical regardless of which filter Nest happens to run first.
+      // borrow the same mapping the Prisma filter uses, so we behave the same
+      // no matter which filter Nest reaches for first
       const mapped = mapPrismaError(exception);
       status = mapped?.status ?? HttpStatus.INTERNAL_SERVER_ERROR;
       message = mapped?.message ?? 'Database error';
@@ -61,7 +54,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         const rawMessage = res.message;
 
         if (Array.isArray(rawMessage)) {
-          // ValidationPipe default: message is an array of constraint strings.
+          // ValidationPipe hands us an array of constraint messages
           errors = rawMessage.map(String);
           message = 'Validation failed';
         } else if (typeof rawMessage === 'string') {
@@ -77,7 +70,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       stack = exception.stack;
     }
 
-    // Print the error to the terminal with request context.
+    // log it out with the request that caused it
     const where = `${request.method} ${request.originalUrl}`;
     const detail = errors.length ? ` :: ${errors.join('; ')}` : '';
     if (status >= 500) {

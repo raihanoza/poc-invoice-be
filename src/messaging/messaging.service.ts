@@ -22,11 +22,9 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
-/**
- * Orchestrates sending an invoice to a client over the channel(s) implied by
- * `client.reminderChannel` (or an explicit override). Each channel attempt is
- * captured as a SendResult — a failure on one channel does not abort the other.
- */
+// sends an invoice to a client over whichever channel(s) their reminderChannel
+// asks for (or an override). every attempt comes back as a SendResult, and one
+// channel failing doesn't stop the other from going out.
 @Injectable()
 export class MessagingService {
   constructor(
@@ -55,10 +53,8 @@ export class MessagingService {
     return results;
   }
 
-  /**
-   * Send a ready-made reminder `message` (already drafted) to the client over
-   * the channel(s) in their preference. Used by the immediate on-create reminder.
-   */
+  // push an already-drafted reminder message to the client over their preferred
+  // channel(s). this is what the immediate on-create reminder calls.
   async sendReminder(
     invoice: InvoiceWithClient,
     message: string,

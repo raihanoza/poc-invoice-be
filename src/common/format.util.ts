@@ -7,7 +7,7 @@ function toNumber(value: Numeric): number {
   return Number.isFinite(num) ? num : 0;
 }
 
-/** Indonesian Rupiah, e.g. "Rp 1.150.000". */
+// rupiah, e.g. "Rp 1.150.000"
 export function formatIDR(value: Numeric): string {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -24,7 +24,7 @@ export function formatQty(value: Numeric): string {
   }).format(toNumber(value));
 }
 
-/** Calendar date in UTC, e.g. "25 Juni 2026". */
+// date in UTC, e.g. "25 Juni 2026"
 export function formatDate(value: Date): string {
   return new Intl.DateTimeFormat('id-ID', {
     day: '2-digit',

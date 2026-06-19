@@ -75,7 +75,7 @@ export class InvoicesController {
       dto.channel,
     );
 
-    // If every attempted channel failed, surface it as an error.
+    // nothing got through on any channel, so treat the whole thing as a failure
     if (results.length > 0 && results.every((r) => r.status === 'failed')) {
       const detail = results
         .map((r) => `${r.channel}: ${r.detail ?? 'failed'}`)
@@ -105,7 +105,7 @@ export class InvoicesController {
       'Content-Type': 'application/pdf',
       'Content-Disposition': `inline; filename="${invoice.invoiceNo}.pdf"`,
     });
-    // ResponseInterceptor detects StreamableFile and skips the JSON envelope.
+    // ResponseInterceptor sees the StreamableFile and leaves it out of the JSON wrapper
     return new StreamableFile(buffer);
   }
 }

@@ -8,7 +8,7 @@ import { PrismaClientExceptionFilter } from './common/filters/prisma-exception.f
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
-  // POC: open CORS so the Next.js web app and n8n can call the API freely.
+  // wide open for now so the web app and n8n can hit the API without fuss
   app.enableCors();
 
   app.useGlobalPipes(
@@ -21,8 +21,8 @@ async function bootstrap(): Promise<void> {
 
   app.useGlobalInterceptors(new ResponseInterceptor());
 
-  // Catch-all first, specific Prisma filter last. Ordering is not relied upon for
-  // correctness — the catch-all also maps Prisma errors — but this keeps intent clear.
+  // catch-all first, Prisma filter after. order doesn't actually matter here
+  // (the catch-all handles Prisma errors too), it just reads more clearly this way.
   app.useGlobalFilters(
     new HttpExceptionFilter(),
     new PrismaClientExceptionFilter(),
