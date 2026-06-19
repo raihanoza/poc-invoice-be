@@ -113,6 +113,12 @@ Workflow ada di `n8n/workflow-export.json`. Import ke n8n, set environment varia
 (`API_BASE_URL`, `INTERNAL_API_KEY`, `GROQ_API_KEY`, dll), lalu aktifkan. Panduan lengkap di
 [`n8n/SETUP.md`](n8n/SETUP.md) (dan [`n8n/README.md`](n8n/README.md)).
 
+**Reminder langsung saat input:** kalau sebuah invoice dibuat dan `dueDate`-nya sudah hari ini
+(atau lewat) dengan status `unpaid`, backend langsung memproses reminder-nya saat itu juga
+(tanpa menunggu jadwal n8n) — draft pesan via Groq bila `GROQ_API_KEY` di-set, kalau tidak
+pakai template, lalu kirim sesuai channel client dan catat di `reminder_logs` (maksimal sekali
+per hari, idempoten via unique `(invoiceId, sentDate)`).
+
 ---
 
 ## Catatan scope (POC)

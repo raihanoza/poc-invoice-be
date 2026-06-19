@@ -5,12 +5,21 @@ import { formatDate, formatIDR } from '../common/format.util';
 import { EmailService } from './email.service';
 import { WhatsappService } from './whatsapp.service';
 
-type InvoiceWithClient = Invoice & { client: Client };
+export type InvoiceWithClient = Invoice & { client: Client };
 
 export interface SendResult {
   channel: 'email' | 'whatsapp';
   status: 'sent' | 'failed';
   detail?: string;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /**
@@ -43,6 +52,50 @@ export class MessagingService {
     if (channel === ReminderChannel.whatsapp || channel === ReminderChannel.both) {
       results.push(await this.trySendWhatsapp(invoice, link, businessName));
     }
+    return results;
+  }
+
+  /**
+   * Send a ready-made reminder `message` (already drafted) to the client over
+   * the channel(s) in their preference. Used by the immediate on-create reminder.
+   */
+  async sendReminder(
+    invoice: InvoiceWithClient,
+    message: string,
+  ): Promise<SendResult[]> {
+    const channel = invoice.client.reminderChannel;
+    const results: SendResult[] = [];
+
+    if (channel === ReminderChannel.email || channel === ReminderChannel.both) {
+      if (!invoice.client.email) {
+        results.push({ channel: 'email', status: 'failed', detail: 'client has no email address' });
+      } else {
+        try {
+          await this.email.send({
+            to: invoice.client.email,
+            subject: `Pengingat pembayaran invoice ${invoice.invoiceNo}`,
+            html: `<div style="font-family:Arial,sans-serif;font-size:14px;white-space:pre-line">${escapeHtml(message)}</div>`,
+          });
+          results.push({ channel: 'email', status: 'sent' });
+        } catch (err) {
+          results.push({ channel: 'email', status: 'failed', detail: (err as Error).message });
+        }
+      }
+    }
+
+    if (channel === ReminderChannel.whatsapp || channel === ReminderChannel.both) {
+      if (!invoice.client.whatsappNumber) {
+        results.push({ channel: 'whatsapp', status: 'failed', detail: 'client has no WhatsApp number' });
+      } else {
+        try {
+          await this.whatsapp.send({ to: invoice.client.whatsappNumber, message });
+          results.push({ channel: 'whatsapp', status: 'sent' });
+        } catch (err) {
+          results.push({ channel: 'whatsapp', status: 'failed', detail: (err as Error).message });
+        }
+      }
+    }
+
     return results;
   }
 

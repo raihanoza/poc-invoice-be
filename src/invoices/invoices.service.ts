@@ -7,6 +7,7 @@ import {
 import { InvoiceStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { toDateOnly } from '../common/date.util';
+import { ReminderDispatchService } from '../messaging/reminder-dispatch.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { ListInvoicesQueryDto } from './dto/list-invoices.query.dto';
@@ -28,7 +29,10 @@ interface ComputedItems {
 
 @Injectable()
 export class InvoicesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly reminderDispatch: ReminderDispatchService,
+  ) {}
 
   // ---------------------------------------------------------------------------
   // Commands
@@ -49,7 +53,7 @@ export class InvoicesService {
     const invoiceNo = dto.invoiceNo ?? (await this.generateInvoiceNo(createdDate));
     const shareToken = this.generateShareToken();
 
-    return this.prisma.invoice.create({
+    const invoice = await this.prisma.invoice.create({
       data: {
         invoiceNo,
         createdDate,
@@ -63,6 +67,15 @@ export class InvoicesService {
       },
       include: invoiceInclude,
     });
+
+    // If the invoice is already due today (or overdue), process the reminder
+    // immediately instead of waiting for the daily n8n run. Fire-and-forget so
+    // the create response isn't blocked by message drafting/sending.
+    if (this.reminderDispatch.shouldDispatchOnCreate(invoice)) {
+      void this.reminderDispatch.dispatchForInvoice(invoice.id);
+    }
+
+    return invoice;
   }
 
   async update(
