@@ -136,15 +136,9 @@
       "parameters": {
         "method": "POST",
         "url": "={{ $env.WHATSAPP_SERVICE_URL }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $env.WHATSAPP_SERVICE_TOKEN }}" }
-          ]
-        },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ to: $('Build message context').item.json.whatsapp, message: $('Build message context').item.json.messageContent + '\\n\\nLihat invoice: ' + $('Build message context').item.json.shareUrl }) }}",
+        "jsonBody": "={{ JSON.stringify({ message: $('Build message context').item.json.messageContent + '\\n\\nLihat invoice: ' + $('Build message context').item.json.shareUrl, numbers: $('Build message context').item.json.whatsapp, apiKey: $env.WHATSAPP_SERVICE_TOKEN }) }}",
         "options": {}
       },
       "id": "node_wa",
@@ -180,15 +174,9 @@
       "parameters": {
         "method": "POST",
         "url": "={{ $env.WHATSAPP_SERVICE_URL }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $env.WHATSAPP_SERVICE_TOKEN }}" }
-          ]
-        },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ to: $('Build message context').item.json.whatsapp, message: $('Build message context').item.json.messageContent + '\\n\\nLihat invoice: ' + $('Build message context').item.json.shareUrl }) }}",
+        "jsonBody": "={{ JSON.stringify({ message: $('Build message context').item.json.messageContent + '\\n\\nLihat invoice: ' + $('Build message context').item.json.shareUrl, numbers: $('Build message context').item.json.whatsapp, apiKey: $env.WHATSAPP_SERVICE_TOKEN }) }}",
         "options": {}
       },
       "id": "node_wa_both",

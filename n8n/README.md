@@ -39,8 +39,8 @@ The workflow reads these via `{{ $env.* }}` so no secrets are stored in the JSON
 | `GROQ_API_KEY` | Groq API key for message drafting (OpenAI-compatible API) |
 | `RESEND_API_KEY` | Resend API key (email channel) |
 | `EMAIL_FROM` | Verified Resend sender address |
-| `WHATSAPP_SERVICE_URL` | Endpoint of your WhatsApp service (Baileys/Cloud API proxy) |
-| `WHATSAPP_SERVICE_TOKEN` | Bearer token for the WhatsApp service |
+| `WHATSAPP_SERVICE_URL` | WhatsApp service endpoint (e.g. `https://waapi.transporindo.com/whatsapp/send-message`) |
+| `WHATSAPP_SERVICE_TOKEN` | apiKey for the WhatsApp service (sent in the request body) |
 | `WEB_PUBLIC_URL` | Frontend base URL, used to build the `/invoice/{token}` share link |
 
 In a self-hosted n8n, set these in n8n's own environment (e.g. the container/service env).
@@ -59,4 +59,5 @@ In a self-hosted n8n, set these in n8n's own environment (e.g. the container/ser
   `email→0, whatsapp→1, both→2`. If your n8n version differs, you can recreate it as a
   3-output Switch in rules mode.
 - No retry/backoff (Section 9): a failed send is just logged as `failed` for manual review.
-- The WhatsApp node posts `{ to, message }` — adapt the body to match your WhatsApp service.
+- The WhatsApp node posts `{ message, numbers, apiKey }` to the waapi service
+  (`numbers` = recipient, `apiKey` = `WHATSAPP_SERVICE_TOKEN`).

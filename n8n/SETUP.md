@@ -66,8 +66,8 @@ Variabel yang dipakai:
 | `GROQ_API_KEY` | API key Groq (API OpenAI-compatible) |
 | `RESEND_API_KEY` | API key Resend (channel email) |
 | `EMAIL_FROM` | alamat pengirim terverifikasi di Resend |
-| `WHATSAPP_SERVICE_URL` | endpoint service WhatsApp kamu |
-| `WHATSAPP_SERVICE_TOKEN` | token service WhatsApp |
+| `WHATSAPP_SERVICE_URL` | endpoint service WhatsApp (mis. `https://waapi.transporindo.com/whatsapp/send-message`) |
+| `WHATSAPP_SERVICE_TOKEN` | apiKey service WhatsApp (dikirim di body) |
 | `WEB_PUBLIC_URL` | `http://localhost:3000` (untuk link share `/invoice/{token}`) |
 
 ### Cara set — npx/npm (PowerShell)
@@ -120,7 +120,7 @@ docker run -it --rm --name n8n -p 5678:5678 `
   Ganti sesuai model yang kamu punya aksesnya.
 - **Route by channel:** node Switch (mode expression) memetakan `email→0, whatsapp→1, both→2`.
   Kalau versi n8n-mu beda, buat ulang sebagai Switch 3 output.
-- **Send WhatsApp:** body `{ to, message }` — sesuaikan dengan format service WA-mu bila perlu.
+- **Send WhatsApp:** body `{ message, numbers, apiKey }` (waapi transporindo); `apiKey` diambil dari `WHATSAPP_SERVICE_TOKEN`.
 - **Daily 08:00 schedule:** atur jam jika ingin selain 08:00.
 
 ---
