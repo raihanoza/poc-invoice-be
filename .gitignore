@@ -9,6 +9,9 @@ dist/
 .env.*.local
 !.env.example
 
+# Local n8n launcher with real keys (use start-n8n.example.ps1 as template)
+n8n/start-n8n.ps1
+
 # Logs
 *.log
 npm-debug.log*
