@@ -13,7 +13,7 @@ Sebelum n8n, pastikan:
    reminder (≤ hari ini + `REMINDER_DAYS_BEFORE_DUE`, mis. jatuh tempo hari ini / besok / lewat).
    Buat lewat frontend (`/invoices/new`). Tanpa ini, `due-for-reminder` kosong dan workflow
    tidak mengirim apa-apa.
-3. **API key** yang relevan: `ANTHROPIC_API_KEY` (wajib untuk draft pesan). `RESEND_API_KEY` +
+3. **API key** yang relevan: `GROQ_API_KEY` (wajib untuk draft pesan). `RESEND_API_KEY` +
    `EMAIL_FROM` dan/atau `WHATSAPP_SERVICE_URL` (+token) bila ingin benar-benar terkirim.
 
 ---
@@ -63,7 +63,7 @@ Variabel yang dipakai:
 |---|---|
 | `API_BASE_URL` | `http://localhost:3001` (atau `http://host.docker.internal:3001` bila Docker) |
 | `INTERNAL_API_KEY` | **harus sama persis** dengan `INTERNAL_API_KEY` di `.env` backend |
-| `ANTHROPIC_API_KEY` | API key Anthropic |
+| `GROQ_API_KEY` | API key Groq (API OpenAI-compatible) |
 | `RESEND_API_KEY` | API key Resend (channel email) |
 | `EMAIL_FROM` | alamat pengirim terverifikasi di Resend |
 | `WHATSAPP_SERVICE_URL` | endpoint service WhatsApp kamu |
@@ -75,7 +75,7 @@ Set di shell yang sama **sebelum** menjalankan n8n:
 ```powershell
 $env:API_BASE_URL = "http://localhost:3001"
 $env:INTERNAL_API_KEY = "dev-internal-key-change-me"
-$env:ANTHROPIC_API_KEY = "sk-ant-..."
+$env:GROQ_API_KEY = "gsk_your_groq_key"
 $env:RESEND_API_KEY = "re_..."
 $env:EMAIL_FROM = "invoice@domainmu.com"
 $env:WHATSAPP_SERVICE_URL = "https://wa-service/send"
@@ -91,7 +91,7 @@ Tambahkan `-e` untuk tiap variabel:
 docker run -it --rm --name n8n -p 5678:5678 `
   -e API_BASE_URL=http://host.docker.internal:3001 `
   -e INTERNAL_API_KEY=dev-internal-key-change-me `
-  -e ANTHROPIC_API_KEY=sk-ant-... `
+  -e GROQ_API_KEY=gsk_your_groq_key `
   -e RESEND_API_KEY=re_... `
   -e EMAIL_FROM=invoice@domainmu.com `
   -e WHATSAPP_SERVICE_URL=https://wa-service/send `
@@ -116,7 +116,7 @@ docker run -it --rm --name n8n -p 5678:5678 `
 
 ## 5. Cek & sesuaikan node
 
-- **Draft message (Anthropic):** buka node, cek field `model` (default `claude-sonnet-4-6`).
+- **Draft message (Groq):** buka node, cek field `model` (default `llama-3.3-70b-versatile`).
   Ganti sesuai model yang kamu punya aksesnya.
 - **Route by channel:** node Switch (mode expression) memetakan `email→0, whatsapp→1, both→2`.
   Kalau versi n8n-mu beda, buat ulang sebagai Switch 3 output.
@@ -132,7 +132,7 @@ docker run -it --rm --name n8n -p 5678:5678 `
 3. Telusuri tiap node:
    - **Get due-for-reminder** → harus mengembalikan array invoice (lewat `data`).
    - **Compute tone & days** → `tone` = `firm` (overdue) / `friendly` (belum jatuh tempo).
-   - **Draft message (Anthropic)** → menghasilkan teks pesan.
+   - **Draft message (Groq)** → menghasilkan teks pesan.
    - **Send Email/WhatsApp** → terkirim, atau error (kalau key belum diisi).
    - **Log reminder** → memanggil `POST /internal/reminder-logs`.
 
@@ -164,6 +164,6 @@ workflow otomatis tiap hari jam 08:00.
 | `ECONNREFUSED` / tak bisa konек ke API | Backend tidak jalan, atau di Docker pakai `localhost` (ganti ke `host.docker.internal`). |
 | `401` di Get due-for-reminder / Log | `INTERNAL_API_KEY` n8n ≠ `.env` backend. |
 | `due-for-reminder` kosong | Tidak ada invoice unpaid dalam rentang due. Buat invoice uji dengan due dekat. |
-| Anthropic `401`/`400` | `ANTHROPIC_API_KEY` salah/kosong, atau `model` tidak tersedia. |
+| Groq `401`/`400` | `GROQ_API_KEY` salah/kosong, atau `model` tidak tersedia. |
 | `{{ $env.X }}` kosong | Env tidak ter-set di proses n8n (lihat langkah 3). |
 | Email/WA gagal | `RESEND_*` / `WHATSAPP_*` belum diisi → tercatat sebagai `failed` (sesuai desain POC). |

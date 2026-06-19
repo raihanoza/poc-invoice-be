@@ -67,22 +67,21 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.anthropic.com/v1/messages",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-api-key", "value": "={{ $env.ANTHROPIC_API_KEY }}" },
-            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.GROQ_API_KEY }}" },
             { "name": "content-type", "value": "application/json" }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 400, system: 'Kamu adalah asisten yang menulis pesan pengingat pembayaran invoice untuk sebuah bisnis kecil.\\n\\nTulis SATU pesan pengingat singkat (maksimal 80 kata) dalam Bahasa Indonesia, dengan ketentuan:\\n- Jika tone = friendly: nada ramah, sopan, tidak menekan, mengingatkan jatuh tempo yang akan datang.\\n- Jika tone = firm: nada lebih tegas dan profesional (bukan kasar), menekankan invoice sudah lewat jatuh tempo dan perlu segera dibayar.\\n- Sebutkan nomor invoice, jumlah tagihan, dan tanggal jatuh tempo.\\n- Jangan gunakan salam pembuka formal yang panjang, langsung ke inti pesan.\\n- Output HANYA teks pesan, tanpa penjelasan tambahan, tanpa markdown.', messages: [ { role: 'user', content: 'Data:\\n- Nama client: ' + $json.client.name + '\\n- Nomor invoice: ' + $json.invoiceNo + '\\n- Jumlah tagihan: Rp ' + $json.grandTotal + '\\n- Tanggal jatuh tempo: ' + $json.dueDate + '\\n- Tone: ' + $json.tone + '\\n- Hari terlambat (jika ada): ' + ($json.daysOverdue || 0) } ] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'llama-3.3-70b-versatile', max_tokens: 400, temperature: 0.7, messages: [ { role: 'system', content: 'Kamu adalah asisten yang menulis pesan pengingat pembayaran invoice untuk sebuah bisnis kecil.\\n\\nTulis SATU pesan pengingat singkat (maksimal 80 kata) dalam Bahasa Indonesia, dengan ketentuan:\\n- Jika tone = friendly: nada ramah, sopan, tidak menekan, mengingatkan jatuh tempo yang akan datang.\\n- Jika tone = firm: nada lebih tegas dan profesional (bukan kasar), menekankan invoice sudah lewat jatuh tempo dan perlu segera dibayar.\\n- Sebutkan nomor invoice, jumlah tagihan, dan tanggal jatuh tempo.\\n- Jangan gunakan salam pembuka formal yang panjang, langsung ke inti pesan.\\n- Output HANYA teks pesan, tanpa penjelasan tambahan, tanpa markdown.' }, { role: 'user', content: 'Data:\\n- Nama client: ' + $json.client.name + '\\n- Nomor invoice: ' + $json.invoiceNo + '\\n- Jumlah tagihan: Rp ' + $json.grandTotal + '\\n- Tanggal jatuh tempo: ' + $json.dueDate + '\\n- Tone: ' + $json.tone + '\\n- Hari terlambat (jika ada): ' + ($json.daysOverdue || 0) } ] }) }}",
         "options": {}
       },
-      "id": "node_anthropic",
-      "name": "Draft message (Anthropic)",
+      "id": "node_groq",
+      "name": "Draft message (Groq)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [1120, 320]
@@ -90,7 +89,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const inv=$('Compute tone & days').item.json; const ai=$json; const text=(ai&&ai.content&&ai.content[0]&&ai.content[0].text)?ai.content[0].text:''; const base=$env.WEB_PUBLIC_URL||''; return { json: { invoiceId: inv.id, invoiceNo: inv.invoiceNo, grandTotal: inv.grandTotal, dueDate: inv.dueDate, channel: inv.client.reminderChannel, email: inv.client.email, whatsapp: inv.client.whatsappNumber, clientName: inv.client.name, tone: inv.tone, daysOverdue: inv.daysOverdue, shareToken: inv.shareToken, shareUrl: base + '/invoice/' + inv.shareToken, messageContent: text } };"
+        "jsCode": "const inv=$('Compute tone & days').item.json; const ai=$json; const text=(ai&&ai.choices&&ai.choices[0]&&ai.choices[0].message&&ai.choices[0].message.content)?ai.choices[0].message.content:''; const base=$env.WEB_PUBLIC_URL||''; return { json: { invoiceId: inv.id, invoiceNo: inv.invoiceNo, grandTotal: inv.grandTotal, dueDate: inv.dueDate, channel: inv.client.reminderChannel, email: inv.client.email, whatsapp: inv.client.whatsappNumber, clientName: inv.client.name, tone: inv.tone, daysOverdue: inv.daysOverdue, shareToken: inv.shareToken, shareUrl: base + '/invoice/' + inv.shareToken, messageContent: text } };"
       },
       "id": "node_context",
       "name": "Build message context",
@@ -253,9 +252,9 @@
       "main": [[{ "node": "Compute tone & days", "type": "main", "index": 0 }]]
     },
     "Compute tone & days": {
-      "main": [[{ "node": "Draft message (Anthropic)", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Draft message (Groq)", "type": "main", "index": 0 }]]
     },
-    "Draft message (Anthropic)": {
+    "Draft message (Groq)": {
       "main": [[{ "node": "Build message context", "type": "main", "index": 0 }]]
     },
     "Build message context": {

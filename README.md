@@ -110,8 +110,8 @@ Internal (dipanggil n8n, butuh header `x-internal-key: $INTERNAL_API_KEY`):
 ## n8n (reminder otomatis)
 
 Workflow ada di `n8n/workflow-export.json`. Import ke n8n, set environment variable n8n
-(`API_BASE_URL`, `INTERNAL_API_KEY`, `ANTHROPIC_API_KEY`, dll), lalu aktifkan. Detail di
-[`n8n/README.md`](n8n/README.md).
+(`API_BASE_URL`, `INTERNAL_API_KEY`, `GROQ_API_KEY`, dll), lalu aktifkan. Panduan lengkap di
+[`n8n/SETUP.md`](n8n/SETUP.md) (dan [`n8n/README.md`](n8n/README.md)).
 
 ---
 

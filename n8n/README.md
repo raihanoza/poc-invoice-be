@@ -13,7 +13,7 @@ Daily 08:00 schedule
              └─ Compute tone & days
                   tone = "firm" if dueDate < today (overdue), else "friendly"
                   daysOverdue / daysUntilDue computed for the prompt
-                  └─ Draft message (Anthropic /v1/messages)   → AI reminder text
+                  └─ Draft message (Groq /openai/v1/chat/completions)  → AI reminder text
                        └─ Build message context   (consolidate invoice + AI text)
                             └─ Route by channel  (Switch on client.reminderChannel)
                                  ├ email    → Send Email (Resend) ──┐
@@ -36,7 +36,7 @@ The workflow reads these via `{{ $env.* }}` so no secrets are stored in the JSON
 |---|---|
 | `API_BASE_URL` | Base URL of the NestJS API, e.g. `http://localhost:3001` (use `http://host.docker.internal:3001` if n8n runs in Docker) |
 | `INTERNAL_API_KEY` | Must match the API's `INTERNAL_API_KEY` (sent as `x-internal-key`) |
-| `ANTHROPIC_API_KEY` | Anthropic API key for message drafting |
+| `GROQ_API_KEY` | Groq API key for message drafting (OpenAI-compatible API) |
 | `RESEND_API_KEY` | Resend API key (email channel) |
 | `EMAIL_FROM` | Verified Resend sender address |
 | `WHATSAPP_SERVICE_URL` | Endpoint of your WhatsApp service (Baileys/Cloud API proxy) |
@@ -49,8 +49,8 @@ In a self-hosted n8n, set these in n8n's own environment (e.g. the container/ser
 
 1. n8n → **Workflows** → **Import from File** → choose `workflow-export.json`.
 2. Set the environment variables above for the n8n instance.
-3. Open `Draft message (Anthropic)` and adjust the `model` if desired
-   (default `claude-sonnet-4-6`).
+3. Open `Draft message (Groq)` and adjust the `model` if desired
+   (default `llama-3.3-70b-versatile`).
 4. Confirm the schedule (default daily 08:00) and **activate** the workflow.
 
 ## Notes / POC scope
