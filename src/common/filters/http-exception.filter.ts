@@ -7,7 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { mapPrismaError } from './prisma-exception.filter';
 
 interface FailureEnvelope {
@@ -22,19 +22,25 @@ interface FailureEnvelope {
  *
  * - HttpException (incl. validation errors from ValidationPipe) is unwrapped so
  *   class-validator messages land in `errors[]`.
- * - Anything else becomes a 500 with a generic message (details go to the log).
+ * - Prisma known errors are mapped (same logic as the dedicated Prisma filter).
+ * - Anything else becomes a 500 with a generic message.
+ *
+ * Every handled error is also printed to the terminal with the request context
+ * (warn for 4xx, error + stack for 5xx).
  */
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(HttpExceptionFilter.name);
+  private readonly logger = new Logger('HTTP');
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
     let errors: string[] = [];
+    let stack: string | undefined;
 
     if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       // Reuse the exact mapping from the dedicated Prisma filter so behaviour is
@@ -43,11 +49,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
       status = mapped?.status ?? HttpStatus.INTERNAL_SERVER_ERROR;
       message = mapped?.message ?? 'Database error';
       errors = mapped?.errors ?? [];
-      response.status(status).json({ success: false, message, errors });
-      return;
-    }
-
-    if (exception instanceof HttpException) {
+      if (!mapped) stack = exception.stack;
+    } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const body = exception.getResponse();
 
@@ -70,8 +73,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
         }
       }
     } else if (exception instanceof Error) {
-      this.logger.error(exception.message, exception.stack);
       message = exception.message || message;
+      stack = exception.stack;
+    }
+
+    // Print the error to the terminal with request context.
+    const where = `${request.method} ${request.originalUrl}`;
+    const detail = errors.length ? ` :: ${errors.join('; ')}` : '';
+    if (status >= 500) {
+      this.logger.error(`${where} -> ${status} ${message}${detail}`, stack);
+    } else {
+      this.logger.warn(`${where} -> ${status} ${message}${detail}`);
     }
 
     const payload: FailureEnvelope = { success: false, message, errors };
