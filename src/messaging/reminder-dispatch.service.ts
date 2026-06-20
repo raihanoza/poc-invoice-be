@@ -8,12 +8,14 @@ import { ConfigService } from '@nestjs/config';
 import {
   Client,
   Invoice,
+  InvoiceItem,
   ReminderChannel,
   ReminderLogStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { startOfTodayUtc } from '../common/date.util';
 import { formatDate, formatIDR } from '../common/format.util';
+import { PdfService } from '../pdf/pdf.service';
 import { GroqService } from './groq.service';
 import {
   InvoiceWithClient,
@@ -47,6 +49,7 @@ export class ReminderDispatchService {
     private readonly config: ConfigService,
     private readonly groq: GroqService,
     private readonly messaging: MessagingService,
+    private readonly pdf: PdfService,
   ) {}
 
   // should a freshly created invoice get a reminder right away?
@@ -93,13 +96,13 @@ export class ReminderDispatchService {
   private load(invoiceId: string) {
     return this.prisma.invoice.findUnique({
       where: { id: invoiceId },
-      include: { client: true },
+      include: { client: true, items: true },
     });
   }
 
   // the actual work: pick a tone, draft the text, send it, log it
   private async process(
-    invoice: Invoice & { client: Client },
+    invoice: Invoice & { client: Client; items: InvoiceItem[] },
   ): Promise<DispatchResult> {
     const sentDate = startOfTodayUtc();
     const dueTime = new Date(invoice.dueDate).getTime();
@@ -143,9 +146,20 @@ export class ReminderDispatchService {
       ? `${message}\n\nLihat invoice: ${shareUrl}`
       : message;
 
+    // attach the invoice PDF when we can; if rendering fails, still send the text
+    let pdfBuffer: Buffer | undefined;
+    try {
+      pdfBuffer = await this.pdf.generateInvoicePdf(invoice);
+    } catch (err) {
+      this.logger.warn(
+        `PDF render failed for ${invoice.invoiceNo} (${(err as Error).message}); sending reminder without attachment`,
+      );
+    }
+
     const results = await this.messaging.sendReminder(
       invoice as InvoiceWithClient,
       fullMessage,
+      pdfBuffer,
     );
     const anySent = results.some((r) => r.status === 'sent');
     const status = anySent ? ReminderLogStatus.sent : ReminderLogStatus.failed;

@@ -48,7 +48,7 @@ export class MessagingService {
       results.push(await this.trySendEmail(invoice, pdfBuffer, link, businessName));
     }
     if (channel === ReminderChannel.whatsapp || channel === ReminderChannel.both) {
-      results.push(await this.trySendWhatsapp(invoice, link, businessName));
+      results.push(await this.trySendWhatsapp(invoice, pdfBuffer, link, businessName));
     }
     return results;
   }
@@ -58,6 +58,7 @@ export class MessagingService {
   async sendReminder(
     invoice: InvoiceWithClient,
     message: string,
+    pdfBuffer?: Buffer,
   ): Promise<SendResult[]> {
     const channel = invoice.client.reminderChannel;
     const results: SendResult[] = [];
@@ -71,6 +72,9 @@ export class MessagingService {
             to: invoice.client.email,
             subject: `Pengingat pembayaran invoice ${invoice.invoiceNo}`,
             html: `<div style="font-family:Arial,sans-serif;font-size:14px;white-space:pre-line">${escapeHtml(message)}</div>`,
+            attachments: pdfBuffer
+              ? [{ filename: `${invoice.invoiceNo}.pdf`, content: pdfBuffer.toString('base64') }]
+              : undefined,
           });
           results.push({ channel: 'email', status: 'sent' });
         } catch (err) {
@@ -84,7 +88,13 @@ export class MessagingService {
         results.push({ channel: 'whatsapp', status: 'failed', detail: 'client has no WhatsApp number' });
       } else {
         try {
-          await this.whatsapp.send({ to: invoice.client.whatsappNumber, message });
+          await this.whatsapp.send({
+            to: invoice.client.whatsappNumber,
+            message,
+            file: pdfBuffer
+              ? { filename: `${invoice.invoiceNo}.pdf`, content: pdfBuffer }
+              : undefined,
+          });
           results.push({ channel: 'whatsapp', status: 'sent' });
         } catch (err) {
           results.push({ channel: 'whatsapp', status: 'failed', detail: (err as Error).message });
@@ -121,6 +131,7 @@ export class MessagingService {
 
   private async trySendWhatsapp(
     invoice: InvoiceWithClient,
+    pdfBuffer: Buffer | undefined,
     link: string,
     businessName: string,
   ): Promise<SendResult> {
@@ -131,6 +142,9 @@ export class MessagingService {
       await this.whatsapp.send({
         to: invoice.client.whatsappNumber,
         message: this.buildWhatsappText(invoice, link, businessName),
+        file: pdfBuffer
+          ? { filename: `${invoice.invoiceNo}.pdf`, content: pdfBuffer }
+          : undefined,
       });
       return { channel: 'whatsapp', status: 'sent' };
     } catch (err) {

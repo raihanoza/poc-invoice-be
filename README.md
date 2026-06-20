@@ -110,11 +110,18 @@ Internal (dipanggil n8n, butuh header `x-internal-key: $INTERNAL_API_KEY`):
 
 ## n8n (reminder otomatis)
 
-Workflow ada di `n8n/workflow-export.json`. Import ke n8n, set environment variable n8n
-(`API_BASE_URL` + `INTERNAL_API_KEY` saja), lalu aktifkan. n8n hanya menjadwalkan: ia ambil
-daftar invoice yang due lalu memanggil `dispatch-reminder` per invoice — semua proses draft,
-kirim, dan logging dilakukan backend. Kredensial Groq/email/WhatsApp cukup di env backend.
-Panduan lengkap di [`n8n/SETUP.md`](n8n/SETUP.md) (dan [`n8n/README.md`](n8n/README.md)).
+Workflow ada di `n8n/workflow-export.json`. Di build ini **n8n yang mengirim langsung**: ia
+ambil daftar invoice yang due, lalu per invoice men-draft pesan (Groq), mengunduh PDF dari
+backend (`GET /invoices/{id}/pdf`), dan mengirim email (PDF dilampirkan) dan/atau WhatsApp
+(PDF via `/send-message-image`, multipart), lalu mencatat `reminder_logs` lewat endpoint
+internal. Karena itu kredensial pengiriman (Groq, WhatsApp, alamat email + credential SMTP)
+harus di-set di **n8n**, bukan hanya backend. Panduan lengkap — termasuk daftar env var dan
+cara set-nya di macOS/Windows/Docker — ada di [`n8n/SETUP.md`](n8n/SETUP.md) dan
+[`n8n/README.md`](n8n/README.md).
+
+> Catatan: backend juga bisa melakukan semua ini sendiri lewat
+> `POST /internal/invoices/{id}/dispatch-reminder` (jalur yang dipakai tombol "Remind" dan
+> reminder saat input). Workflow n8n di repo ini sengaja menyimpan logika kirim di n8n.
 
 **Reminder langsung saat input:** kalau sebuah invoice dibuat dan `dueDate`-nya sudah hari ini
 (atau lewat) dengan status `unpaid`, backend langsung memproses reminder-nya saat itu juga

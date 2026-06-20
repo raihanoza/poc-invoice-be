@@ -115,16 +115,38 @@
     },
     {
       "parameters": {
+        "url": "={{ $env.API_BASE_URL }}/invoices/{{ $json.invoiceId }}/pdf",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "id": "f0a1b2c3-d4e5-46f7-8a9b-0c1d2e3f4a5b",
+      "name": "Download PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -256,
+        192
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
         "mode": "expression",
         "numberOutputs": 3,
-        "output": "={{ ({ email: 0, whatsapp: 1, both: 2 })[$json.channel] }}"
+        "output": "={{ ({ email: 0, whatsapp: 1, both: 2 })[$('Build message context').item.json.channel] }}"
       },
       "id": "75d76032-9088-4287-9262-f50fe542449f",
       "name": "Route by channel",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
       "position": [
-        -224,
+        -32,
         192
       ]
     },
@@ -134,9 +156,10 @@
         "toEmail": "={{ $('Build message context').item.json.email }}",
         "subject": "=Pengingat pembayaran invoice {{ $('Build message context').item.json.invoiceNo }}",
         "emailFormat": "html",
-        "html": "=<div style=\"font-family:Arial,sans-serif;font-size:14px;white-space:pre-line\">{{ $('Build message context').item.json.messageContent }}</div><p style=\"font-family:Arial,sans-serif;font-size:14px\">Lihat invoice: <a href=\"{{ $('Build message context').item.json.shareUrl }}\">{{ $('Build message context').item.json.shareUrl }}</a></p>",
+        "html": "=<div style=\"font-family:Arial,sans-serif;font-size:14px;white-space:pre-line\">{{ $('Build message context').item.json.messageContent }}</div><p style=\"font-family:Arial,sans-serif;font-size:14px\">Lihat invoice: <a href=\"{{ $('Build message context').item.json.shareUrl }}\">{{ $('Build message context').item.json.shareUrl }}</a></p><p style=\"font-family:Arial,sans-serif;font-size:14px\">PDF invoice terlampir pada email ini.</p>",
         "options": {
-          "appendAttribution": false
+          "appendAttribution": false,
+          "attachments": "data"
         }
       },
       "id": "254ce7c7-4448-4579-a569-971212772c7a",
@@ -144,8 +167,8 @@
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [
-        0,
-        0
+        192,
+        -16
       ],
       "onError": "continueErrorOutput",
       "credentials": {
@@ -158,10 +181,30 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.WHATSAPP_SERVICE_URL }}",
+        "url": "={{ $env.WHATSAPP_SERVICE_IMAGE_URL || ($env.WHATSAPP_SERVICE_URL || '').replace('/send-message', '/send-message-image') }}",
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ message: $('Build message context').item.json.messageContent + '\\n\\nLihat invoice: ' + $('Build message context').item.json.shareUrl, numbers: $('Build message context').item.json.whatsapp, apiKey: $env.WHATSAPP_SERVICE_TOKEN }) }}",
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "numbers",
+              "value": "={{ $('Build message context').item.json.whatsapp }}"
+            },
+            {
+              "name": "apiKey",
+              "value": "={{ $env.WHATSAPP_SERVICE_TOKEN }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $('Build message context').item.json.messageContent + '\\n\\nLihat invoice: ' + $('Build message context').item.json.shareUrl }}"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "files",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
         "options": {}
       },
       "id": "7a3b9857-cb2f-427f-9ced-a980424623b5",
@@ -169,8 +212,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        0,
-        192
+        192,
+        160
       ],
       "onError": "continueErrorOutput"
     },
@@ -180,9 +223,10 @@
         "toEmail": "={{ $('Build message context').item.json.email }}",
         "subject": "=Pengingat pembayaran invoice {{ $('Build message context').item.json.invoiceNo }}",
         "emailFormat": "html",
-        "html": "=<div style=\"font-family:Arial,sans-serif;font-size:14px;white-space:pre-line\">{{ $('Build message context').item.json.messageContent }}</div><p style=\"font-family:Arial,sans-serif;font-size:14px\">Lihat invoice: <a href=\"{{ $('Build message context').item.json.shareUrl }}\">{{ $('Build message context').item.json.shareUrl }}</a></p>",
+        "html": "=<div style=\"font-family:Arial,sans-serif;font-size:14px;white-space:pre-line\">{{ $('Build message context').item.json.messageContent }}</div><p style=\"font-family:Arial,sans-serif;font-size:14px\">Lihat invoice: <a href=\"{{ $('Build message context').item.json.shareUrl }}\">{{ $('Build message context').item.json.shareUrl }}</a></p><p style=\"font-family:Arial,sans-serif;font-size:14px\">PDF invoice terlampir pada email ini.</p>",
         "options": {
-          "appendAttribution": false
+          "appendAttribution": false,
+          "attachments": "data"
         }
       },
       "id": "432d2538-af7b-4459-94f6-00dc14c3e032",
@@ -190,8 +234,8 @@
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [
-        0,
-        368
+        192,
+        336
       ],
       "onError": "continueErrorOutput",
       "credentials": {
@@ -204,10 +248,30 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.WHATSAPP_SERVICE_URL }}",
+        "url": "={{ $env.WHATSAPP_SERVICE_IMAGE_URL || ($env.WHATSAPP_SERVICE_URL || '').replace('/send-message', '/send-message-image') }}",
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ message: $('Build message context').item.json.messageContent + '\\n\\nLihat invoice: ' + $('Build message context').item.json.shareUrl, numbers: $('Build message context').item.json.whatsapp, apiKey: $env.WHATSAPP_SERVICE_TOKEN }) }}",
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "numbers",
+              "value": "={{ $('Build message context').item.json.whatsapp }}"
+            },
+            {
+              "name": "apiKey",
+              "value": "={{ $env.WHATSAPP_SERVICE_TOKEN }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $('Build message context').item.json.messageContent + '\\n\\nLihat invoice: ' + $('Build message context').item.json.shareUrl }}"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "files",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
         "options": {}
       },
       "id": "3865ece2-c918-450d-b247-903c84ae22b0",
@@ -215,8 +279,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        224,
-        368
+        192,
+        512
       ],
       "onError": "continueErrorOutput"
     },
@@ -243,7 +307,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        464,
+        480,
         144
       ]
     },
@@ -270,7 +334,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        464,
+        480,
         400
       ]
     }
@@ -335,6 +399,17 @@
       "main": [
         [
           {
+            "node": "Download PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download PDF": {
+      "main": [
+        [
+          {
             "node": "Route by channel",
             "type": "main",
             "index": 0
@@ -361,6 +436,11 @@
         [
           {
             "node": "Send Email (both)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send WhatsApp (both)",
             "type": "main",
             "index": 0
           }
@@ -407,7 +487,7 @@
       "main": [
         [
           {
-            "node": "Send WhatsApp (both)",
+            "node": "Log reminder (sent)",
             "type": "main",
             "index": 0
           }
