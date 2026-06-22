@@ -58,6 +58,7 @@ export class WhatsappService {
         message: params.message,
         numbers: params.to,
         apiKey,
+        sessionId: this.config.get<string>("WHATSAPP_SESSION_ID"),
       }),
     });
 
@@ -84,6 +85,7 @@ export class WhatsappService {
     form.append("numbers", params.to);
     form.append("apiKey", apiKey);
     form.append("message", params.message);
+    form.append("sessionId", this.config.get<string>("WHATSAPP_SESSION_ID") ?? "");
     form.append(
       "files",
       new Blob([new Uint8Array(file.content)], {

@@ -1,0 +1,9 @@
+# Auto-HTTPS for the backend. Caddy fetches & renews a Let's Encrypt cert for
+# this hostname automatically (HTTP-01 challenge on port 80), then proxies to
+# the backend container on the compose network.
+#
+# Requires: DuckDNS 'pocinvoice' pointed at this Droplet's IP, and ports 80 + 443
+# open in the firewall.
+pocinvoice.duckdns.org {
+	reverse_proxy backend:3001
+}

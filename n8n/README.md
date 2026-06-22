@@ -47,6 +47,7 @@ n8n sends directly, it needs the full set (not just the backend's two):
 | `WEB_PUBLIC_URL` | Public web base for the share link, e.g. `http://localhost:3000`. |
 | `EMAIL_FROM` *(or `EMAIL_USER`)* | "From" address shown on the email (FROM falls back to USER). The SMTP **login** is an n8n credential, not an env var — see below. |
 | `WHATSAPP_SERVICE_TOKEN` | WhatsApp apiKey. |
+| `WHATSAPP_SESSION_ID` | Gateway session id — sent as the `sessionId` field on each WhatsApp request. |
 | `WHATSAPP_SERVICE_URL` | WhatsApp base URL, e.g. `https://waapi.transporindo.com/whatsapp/send-message`. The image endpoint is derived automatically (`…/send-message-image`). |
 | `WHATSAPP_SERVICE_IMAGE_URL` | *(optional)* set explicitly to override the derived image URL. |
 

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ReminderLogStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { addDays, startOfTodayUtc, toDateOnly } from '../common/date.util';
 import { CreateReminderLogDto } from './dto/create-reminder-log.dto';
@@ -45,6 +46,20 @@ export class RemindersService {
       throw new NotFoundException(`Invoice ${dto.invoiceId} not found`);
     }
 
+    const existing = await this.prisma.reminderLog.findUnique({
+      where: { invoiceId_sentDate: { invoiceId: dto.invoiceId, sentDate } },
+      select: { status: true },
+    });
+
+    // never downgrade sent -> failed for the same day. when a client wants "both"
+    // channels, n8n logs each channel separately; a later "failed" (e.g. WhatsApp)
+    // must not erase an earlier "sent" (e.g. email) — the reminder did go out.
+    const status =
+      existing?.status === ReminderLogStatus.sent &&
+      dto.status === ReminderLogStatus.failed
+        ? ReminderLogStatus.sent
+        : dto.status;
+
     return this.prisma.reminderLog.upsert({
       where: {
         invoiceId_sentDate: { invoiceId: dto.invoiceId, sentDate },
@@ -54,12 +69,12 @@ export class RemindersService {
         sentDate,
         channel: dto.channel,
         messageContent: dto.messageContent,
-        status: dto.status,
+        status,
       },
       update: {
         channel: dto.channel,
         messageContent: dto.messageContent,
-        status: dto.status,
+        status,
       },
     });
   }

@@ -1,0 +1,14 @@
+node_modules
+dist
+npm-debug.log
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+Dockerfile
+.dockerignore
+docker-compose.yml
+**/*.md
+n8n/start-n8n.ps1
+n8n/start-n8n.sh

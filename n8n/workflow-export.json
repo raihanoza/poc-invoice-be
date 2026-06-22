@@ -195,6 +195,10 @@
               "value": "={{ $env.WHATSAPP_SERVICE_TOKEN }}"
             },
             {
+              "name": "sessionId",
+              "value": "={{ $env.WHATSAPP_SESSION_ID }}"
+            },
+            {
               "name": "message",
               "value": "={{ $('Build message context').item.json.messageContent + '\\n\\nLihat invoice: ' + $('Build message context').item.json.shareUrl }}"
             },
@@ -260,6 +264,10 @@
             {
               "name": "apiKey",
               "value": "={{ $env.WHATSAPP_SERVICE_TOKEN }}"
+            },
+            {
+              "name": "sessionId",
+              "value": "={{ $env.WHATSAPP_SESSION_ID }}"
             },
             {
               "name": "message",
