@@ -181,7 +181,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.WHATSAPP_SERVICE_IMAGE_URL || ($env.WHATSAPP_SERVICE_URL || '').replace('/send-message', '/send-message-image') }}",
+        "url": "http://localhost:3002/whatsapp/send-message-image",
         "sendBody": true,
         "contentType": "multipart-form-data",
         "bodyParameters": {
@@ -248,7 +248,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.WHATSAPP_SERVICE_IMAGE_URL || ($env.WHATSAPP_SERVICE_URL || '').replace('/send-message', '/send-message-image') }}",
+        "url": "http://localhost:3002/whatsapp/send-message-image",
         "sendBody": true,
         "contentType": "multipart-form-data",
         "bodyParameters": {
@@ -336,6 +336,34 @@
       "position": [
         480,
         400
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const e = $json.error; return { json: { ok: false, error: (e && typeof e === 'object') ? (e.message || 'whatsapp send failed') : String(e || 'whatsapp send failed') } };"
+      },
+      "id": "c1a2b3d4-e5f6-4071-8293-a4b5c6d7e8f9",
+      "name": "WA failed cleanup",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        288,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const e = $json.error; return { json: { ok: false, error: (e && typeof e === 'object') ? (e.message || 'whatsapp send failed') : String(e || 'whatsapp send failed') } };"
+      },
+      "id": "d2b3c4e5-f6a7-4182-93a4-b5c6d7e8f9a0",
+      "name": "WA failed cleanup (both)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        288,
+        512
       ]
     }
   ],
@@ -476,6 +504,17 @@
         ],
         [
           {
+            "node": "WA failed cleanup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WA failed cleanup": {
+      "main": [
+        [
+          {
             "node": "Log reminder (failed)",
             "type": "main",
             "index": 0
@@ -510,6 +549,17 @@
             "index": 0
           }
         ],
+        [
+          {
+            "node": "WA failed cleanup (both)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WA failed cleanup (both)": {
+      "main": [
         [
           {
             "node": "Log reminder (failed)",
